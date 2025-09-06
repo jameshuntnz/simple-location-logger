@@ -50,9 +50,9 @@ class LocationTrackingService : Service() {
     locationRequest = LocationRequest.Builder(
       Priority.PRIORITY_HIGH_ACCURACY, interval
     ).apply {
-      setMinUpdateIntervalMillis(interval)
+      setMinUpdateIntervalMillis(interval / 2)
       setWaitForAccurateLocation(true)
-      setMaxUpdateDelayMillis(interval * 2)
+      setMaxUpdateDelayMillis(interval)
     }.build()
 
     startLiveNotification()
@@ -125,6 +125,13 @@ class LocationTrackingService : Service() {
       result.lastLocation?.let { location ->
         coroutineScope.launch {
           appendLocationToBuffer(location)
+          try {
+            val pingIntent = Intent("com.example.locationlogger.ACTION_LOCATION_LOGGED").apply {
+              `package` = packageName
+            }
+            sendBroadcast(pingIntent)
+          } catch (_: Exception) {
+          }
           // Flush if buffer has grown large
           val shouldFlush = synchronized(bufferLock) { locationBuffer.size >= maxBufferSize }
           if (shouldFlush) flushBufferToCsv()
